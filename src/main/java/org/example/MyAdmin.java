@@ -1,9 +1,13 @@
 package org.example;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Scanner;
 
 public class MyAdmin {
     private final MyAdminManager myAdminManager = new MyAdminManager();
-
     private Admin admin;
     public MyAdmin() {
         admin = null;
@@ -24,7 +28,7 @@ public class MyAdmin {
                     registerAdmin(scanner);
                     break;
                 case 2:
-                    if (adminLogin(scanner)) {
+                    if (adminLogin(scanner)!=null) {
                         adminMenu(scanner);
                     }
                     break;
@@ -54,11 +58,18 @@ public class MyAdmin {
                 throw new IllegalArgumentException("无效的用户名！请输入数字或英文");
             }
             admin = new Admin(username, password);
-            System.out.println("管理员账户注册成功！");
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter("admin.txt", true))) {
+                writer.write(username + ":" + password);
+                writer.newLine();
+                System.out.println("管理员注册成功！");
+            } catch (IOException e) {
+                System.out.println("注册失败：" + e.getMessage());
+            }
         }catch (IllegalArgumentException e) {
             System.out.println("错误： " + e.getMessage());
         }
     }
+
     private boolean isValidUsername(String username) {
         String regex = "^[a-zA-Z0-9]+$";
         return username.matches(regex);
@@ -69,22 +80,25 @@ public class MyAdmin {
     }
 
 
-    private boolean adminLogin(Scanner scanner) {
-        if (admin == null) {
-            System.out.println("管理员账户不存在，请先注册管理员账户！");
-            return false;
-        }
+    private Admin adminLogin(Scanner scanner) {
         System.out.print("请输入管理员用户名：");
         String username = scanner.next();
         System.out.print("请输入管理员密码：");
         String password = scanner.next();
-        if (admin.getUsername().equals(username) && admin.getPassword().equals(password)) {
-            System.out.println("管理员登录成功！");
-            return true;
-        } else {
-            System.out.println("管理员用户名或密码错误！");
-            return false;
+        try (BufferedReader reader = new BufferedReader(new FileReader("admin.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] userInfo = line.split(":");
+                if (userInfo.length == 2 && userInfo[0].equals(username) && userInfo[1].equals(password)) {
+                    System.out.println("登录成功！");
+                    return new Admin(username, password);
+                }
+            }
+            System.out.println("用户名或密码错误！");
+        } catch (IOException e) {
+            System.out.println("登录失败：" + e.getMessage());
         }
+        return null;
     }
     private void adminMenu(Scanner scanner) {
         boolean exit = false;
@@ -115,5 +129,4 @@ public class MyAdmin {
             }
         }
     }
-    
 }

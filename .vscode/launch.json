@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "ShoppingManagementSystem",
+      "request": "launch",
+      "mainClass": "org.example.ShoppingManagementSystem",
+      "projectName": "Template-Java-Projects-with-Maven"
+    },
+    {
+      "type": "java",
+      "name": "Debug (Launch)",
+      "request": "launch",
+      "mainClass": "org.example.Main",
+      "projectRoot": "${workspaceFolder}",
+      "preLaunchTask": "build"
+    }
+  ]
+}
+

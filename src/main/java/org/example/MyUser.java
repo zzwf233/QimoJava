@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public class MyUser {
+
     private final List<Product> products;
     private Customer loggedInCustomer;
     private final ShoppingCart shoppingCart;
@@ -51,9 +52,9 @@ public class MyUser {
     }
     private void registerCustomer(Scanner scanner) {
         System.out.print("请输入用户名：");
-        String username = scanner.nextLine();
+        String username = scanner.next();
         System.out.print("请输入密码：");
-        String password = scanner.nextLine();
+        String password = scanner.next();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("users.txt", true))) {
             writer.write(username + ":" + password);
             writer.newLine();
@@ -64,9 +65,9 @@ public class MyUser {
     }
     private Customer UserLogin(Scanner scanner) {
         System.out.print("请输入用户名：");
-        String username = scanner.nextLine();
+        String username = scanner.next();
         System.out.print("请输入密码：");
-        String password = scanner.nextLine();
+        String password = scanner.next();
         try (BufferedReader reader = new BufferedReader(new FileReader("users.txt"))) {
             String line;
             while ((line = reader.readLine()) != null) {
