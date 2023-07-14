@@ -1,17 +1,20 @@
 package org.example;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.*;
+
 public class MyAdminManager {
-    private final List<Customer> customers;
-    private final List<Product> products;
-
-
-    private Admin admin;
+    private String adminFilePath = "admin.txt";
+    private String userFilePath = "users.txt";
     public MyAdminManager() {
-        customers = new ArrayList<>();
-        products = new ArrayList<>();
-        admin = null;
+        
     }
     protected void passwordManagement(Scanner scanner) {
         boolean exit = false;
@@ -26,7 +29,7 @@ public class MyAdminManager {
                 case 1:
                     System.out.print("请输入新密码：");
                     String newPassword = scanner.next();
-                    admin.setPassword(newPassword);
+                    writeAdminPassword(newPassword);
                     System.out.println("密码修改成功！");
                     break;
                 case 2:
@@ -36,7 +39,7 @@ public class MyAdminManager {
                     if (customer != null) {
                         System.out.print("请输入新密码：");
                         String newPwd = scanner.next();
-                        customer.setPassword(newPwd);
+                        resetUserPassword(username, newPwd);
                         System.out.println("用户密码重置成功！");
                     } else {
                         System.out.println("找不到该用户！");
@@ -51,11 +54,42 @@ public class MyAdminManager {
             }
         }
     }
-    private Customer getCustomerByUsername(String username) {
-        for (Customer customer : customers) {
-            if (customer.getName().equals(username)) {
-                return customer;
+
+    private void writeAdminPassword(String newPassword) {
+        try {
+            FileWriter fileWriter = new FileWriter(adminFilePath);
+            fileWriter.write("admin:" + newPassword);
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private void resetUserPassword(String username, String newPassword) {
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(userFilePath));
+            for (int i = 0; i < lines.size(); i++) {
+                String line = lines.get(i);
+                if (line.startsWith(username)) {
+                    lines.set(i, username + ":" + newPassword);
+                    break;
+                }
             }
+            Files.write(Paths.get(userFilePath), lines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private Customer getCustomerByUsername(String username) {
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(userFilePath));
+            for (String line : lines) {
+                String[] parts = line.split(":");
+                if (parts[0].equals(username)) {
+                    return new Customer(parts[0], parts[1]);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return null;
     }
@@ -98,21 +132,41 @@ public class MyAdminManager {
         }
     }
     private void listAllCustomers() {
-        System.out.println("所有客户信息：");
-        for (Customer customer : customers) {
-            System.out.println("用户名：" + customer.getName() + " 密码：" + customer.getPassword());
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(userFilePath));
+            System.out.println("所有客户信息：");
+            for (String line : lines) {
+                String[] parts = line.split(":");
+                System.out.println("用户名：" + parts[0] + " 密码：" + parts[1]);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     private void deleteCustomer(String username) {
-        Customer customer = getCustomerByUsername(username);
-        if (customer != null) {
-            customers.remove(customer);
-            System.out.println("用户删除成功！");
-        } else {
-            System.out.println("找不到该用户！");
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(userFilePath));
+            boolean found = false;
+            for (int i = 0; i < lines.size(); i++) {
+                String line = lines.get(i);
+                if (line.startsWith(username)) {
+                    lines.remove(i);
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                Files.write(Paths.get(userFilePath), lines);
+                System.out.println("用户删除成功！");
+            } else {
+                System.out.println("找不到该用户！");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
+    
 
     protected void productManagement(Scanner scanner) {
         boolean exit = false;
@@ -166,8 +220,17 @@ public class MyAdminManager {
 
     private void listAllProducts() {
         System.out.println("所有商品信息：");
-        for (Product product : products) {
-            System.out.println("商品名称：" + product.getName() + " 价格：" + product.getPrice());
+        try (FileReader fileReader = new FileReader("products.txt");
+             BufferedReader bufferedReader = new BufferedReader(fileReader)) {
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                String[] parts = line.split(",");
+                String name = parts[0];
+                double price = Double.parseDouble(parts[1]);
+                System.out.println("商品名称：" + name + " 价格：" + price);
+            }
+        } catch (IOException e) {
+            System.out.println("读取商品信息出错！");
         }
     }
 
@@ -176,40 +239,94 @@ public class MyAdminManager {
         String name = scanner.next();
         System.out.print("请输入商品价格：");
         double price = scanner.nextDouble();
-
-        Product newProduct = new Product(name, price);
-        products.add(newProduct);
-
-        System.out.println("商品添加成功！");
-    }
-
-    private void updateProduct(String name, Scanner scanner) {
-        Product product = getProductByName(name);
-        if (product != null) {
-            System.out.print("请输入新的商品价格：");
-            double newPrice = scanner.nextDouble();
-            product.setPrice(newPrice);
-            System.out.println("商品信息修改成功！");
-        } else {
-            System.out.println("找不到该商品！");
+        try (FileWriter fileWriter = new FileWriter("products.txt", true);
+             BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+            String line = name + "," + price;
+            bufferedWriter.write(line);
+            bufferedWriter.newLine();
+            System.out.println("商品添加成功！");
+        } catch (IOException e) {
+            System.out.println("添加商品信息出错！");
         }
+    }
+    private void updateProduct(String name, Scanner scanner) {
+        try (FileReader fileReader = new FileReader("products.txt");
+             BufferedReader bufferedReader = new BufferedReader(fileReader);
+             FileWriter fileWriter = new FileWriter("temp.txt", true);
+             BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+            String line;
+            boolean found = false;
+            while ((line = bufferedReader.readLine()) != null) {
+                String[] parts = line.split(",");
+                String productName = parts[0];
+                if (productName.equals(name)) {
+                    System.out.print("请输入新的商品价格：");
+                    double newPrice = scanner.nextDouble();
+                    line = productName + "," + newPrice;
+                    found = true;
+                }
+                bufferedWriter.write(line);
+                bufferedWriter.newLine();
+            }
+            if (found) {
+                System.out.println("商品信息修改成功！");
+            } else {
+                System.out.println("找不到该商品！");
+            }
+        } catch (IOException e) {
+            System.out.println("修改商品信息出错！");
+        }
+        File productsFile = new File("products.txt");
+        File tempFile = new File("temp.txt");
+        productsFile.delete();
+        tempFile.renameTo(productsFile);
     }
 
     private void deleteProduct(String productName) {
-        Product product = getProductByName(productName);
-        if (product != null) {
-            products.remove(product);
-            System.out.println("商品删除成功！");
-        } else {
-            System.out.println("找不到该商品！");
+        try (FileReader fileReader = new FileReader("products.txt");
+             BufferedReader bufferedReader = new BufferedReader(fileReader);
+             FileWriter fileWriter = new FileWriter("temp.txt", true);
+             BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+            String line;
+            boolean found = false;
+            while ((line = bufferedReader.readLine()) != null) {
+                String[] parts = line.split(",");
+                String name = parts[0];
+                if (!name.equals(productName)) {
+                    bufferedWriter.write(line);
+                    bufferedWriter.newLine();
+                } else {
+                    found = true;
+                }
+            }
+            if (found) {
+                System.out.println("商品删除成功！");
+            } else {
+                System.out.println("找不到该商品！");
+            }
+        } catch (IOException e) {
+            System.out.println("删除商品信息出错！");
         }
+        File productsFile = new File("products.txt");
+        File tempFile = new File("temp.txt");
+        productsFile.delete();
+        tempFile.renameTo(productsFile);
     }
 
     private Product getProductByName(String name) {
-        for (Product product : products) {
-            if (product.getName().equals(name)) {
-                return product;
+        try (FileReader fileReader = new FileReader("products.txt");
+             BufferedReader bufferedReader = new BufferedReader(fileReader)) {
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                String[] parts = line.split(",");
+                String productName = parts[0];
+                double productPrice = Double.parseDouble(parts[1]);
+                if (productName.equals(name)) {
+                    return new Product(productName, productPrice);
+                }
             }
+        } catch (IOException e) {
+            System.out.println("读取商品信息出错！");
         }
         return null;
     }

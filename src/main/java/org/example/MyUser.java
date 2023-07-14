@@ -5,18 +5,13 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
-
+import java.io.*;
 public class MyUser {
-
-    private final List<Product> products;
     private Customer loggedInCustomer;
     private final ShoppingCart shoppingCart;
-
+    private final String shoppingCartFile = "shoppingCart.txt";
     public MyUser() {
-        products = new ArrayList<>();
         loggedInCustomer = null;
         shoppingCart = new ShoppingCart();
     }
@@ -84,15 +79,28 @@ public class MyUser {
         return null;
     }
     private Product getProductByName(String name) {
-        for (Product product : products) {
-            if (product.getName().equals(name)) {
-                return product;
+        try {
+            File file = new File("products.txt");
+            Scanner scanner = new Scanner(file);
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                String[] parts = line.split(",");
+                String productName = parts[0];
+                double productPrice = Double.parseDouble(parts[1]);
+                Product product = new Product(productName, productPrice);
+                if (product.getName().equals(name)) {
+                    scanner.close();
+                    return product;
+                }
             }
+            scanner.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
         return null;
     }
     // 用户系统功能
-    private void shopping(Scanner scanner) {
+    private void shopping(Scanner scanner) { 
         boolean exit = false;
         while (!exit) {
             System.out.println("\n==== 购物系统 ====");
@@ -115,6 +123,7 @@ public class MyUser {
                         System.out.print("请输入要加入购物车的数量：");
                         int quantity = scanner.nextInt();
                         shoppingCart.addItem(product, quantity);
+                        shoppingCart.saveCartToTextFile(shoppingCartFile);
                         System.out.println("商品已添加至购物车！");
                     } else {
                         System.out.println("找不到该商品！");
@@ -128,6 +137,7 @@ public class MyUser {
                         System.out.print("请输入要移除的数量：");
                         int qty = scanner.nextInt();
                         shoppingCart.removeItem(p, qty);
+                        shoppingCart.saveCartToTextFile(shoppingCartFile);
                         System.out.println("商品已从购物车移除！");
                     } else {
                         System.out.println("找不到该商品！");
@@ -141,6 +151,7 @@ public class MyUser {
                         System.out.print("请输入新的商品数量：");
                         int newQty = scanner.nextInt();
                         shoppingCart.updateQuantity(pr, newQty);
+                        shoppingCart.saveCartToTextFile(shoppingCartFile);
                         System.out.println("商品数量已修改！");
                     } else {
                         System.out.println("找不到该商品！");
@@ -149,14 +160,14 @@ public class MyUser {
                 case 4:
                     double total = shoppingCart.calculateTotal();
                     if (total > 0) {
+                        shoppingCart.displayCart();
                         System.out.println("结账成功！总金额为 $" + total);
-                        shoppingCart.clear();
                     } else {
                         System.out.println("购物车为空，无法结账！");
                     }
                     break;
                 case 5:
-                    shoppingCart.displayCart();
+                    shoppingCart.saveShoppingHistory();
                     break;
                 case 6:
                     exit = true;
