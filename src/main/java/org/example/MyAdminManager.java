@@ -7,16 +7,14 @@ import java.util.Scanner;
 public class MyAdminManager {
     private final List<Customer> customers;
     private final List<Product> products;
-    private Customer loggedInCustomer;
+    private Admin admin;
     
     public MyAdminManager() {
         customers = new ArrayList<>();
         products = new ArrayList<>();
-        loggedInCustomer = null;
+        admin = null;
     }
-    public void setLoggedInCustomer(Customer customer) {
-    loggedInCustomer = customer;
-}
+    
 
     protected void passwordManagement(Scanner scanner) {
         boolean exit = false;
@@ -31,7 +29,7 @@ public class MyAdminManager {
                 case 1:
                     System.out.print("请输入新密码：");
                     String newPassword = scanner.next();
-                    loggedInCustomer = new Customer(loggedInCustomer.getId(),loggedInCustomer.getName(), newPassword);
+                    admin.setPassword(newPassword);
                     System.out.println("密码修改成功！");
                     break;
                 case 2:
